@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 
 export interface BlockQueryResponse {
   data: {
@@ -50,14 +50,23 @@ export default function App() {
   const [gameId, setGameId] = React.useState<string>('1');
   const [hash, setHash] = React.useState<string>('');
 
-  window.electron.ipcRenderer.on('device-set', (_event, args: any) => {
-    console.log('device-set', args);
-    setHash(args[0]);
+  window.electron.ipcRenderer.on('device-set', (hash) => {
+    console.log('device-set', hash);
+    setHash(hash);
   });
 
   return (
     <div>
-      <div>{sessionValue}</div>
+      <div>{hash}</div>
+      <div>
+        <label htmlFor="gameId">GameId: </label>
+        <input
+          id="gameId"
+          type="text"
+          value={gameId}
+          onChange={(e) => setGameId(e.target.value)}
+        />
+      </div>
       <button
         onClick={async () => {
           const value = await getSessionValue(gameId, hash);
@@ -66,11 +75,16 @@ export default function App() {
       >
         Get Session Value
       </button>
-      <input
-        type="text"
-        value={gameId}
-        onChange={(e) => setGameId(e.target.value)}
-      />
+
+      <div>Current Session: {sessionValue}</div>
+
+      <button
+        onClick={async () => {
+          window.electron.ipcRenderer.sendMessage('new-session', gameId);
+        }}
+      >
+        New Session
+      </button>
     </div>
   );
 }

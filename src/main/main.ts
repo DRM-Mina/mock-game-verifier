@@ -26,13 +26,13 @@ let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('new-session', async (event, gameId) => {
   if (isSystemInfoSet) {
+    console.log('Creating new session for game:', gameId);
     const hash = Identifiers.fromRaw(system_info).hash().toString();
     console.log('Hash:', hash);
     const currentSession = await getSessionValue(gameId, hash);
     console.log('Current session:', currentSession);
     createSession(system_info, Number(currentSession), gameId).then((proof) => {
       submitSession(proof);
-      console.log('Submitted proof to server.');
     });
   } else {
     console.error('System info not set.');
@@ -118,10 +118,6 @@ const createWindow = async () => {
   });
 };
 
-/**
- * Add event listeners...
- */
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -131,20 +127,22 @@ app.on('window-all-closed', () => {
 const getIdentifiers = async () => {
   if (platform() === 'linux') {
     system_info = await getLinuxSystemInfo();
-    isSystemInfoSet = true;
-    console.log('System info:', system_info);
-    mainWindow?.webContents.send('device-set', system_info);
+    setSystemInfo(system_info);
   } else if (platform() === 'win32') {
     system_info = await getWindowsSystemInfo();
-    isSystemInfoSet = true;
-    console.log('System info:', system_info);
-    mainWindow?.webContents.send('device-set', system_info);
+    setSystemInfo(system_info);
   } else if (platform() === 'darwin') {
     system_info = await getMacOSSystemInfo();
-    isSystemInfoSet = true;
-    console.log('System info:', system_info);
-    mainWindow?.webContents.send('device-set', system_info);
+    setSystemInfo(system_info);
   }
+};
+
+const setSystemInfo = (info: RawIdentifiers) => {
+  system_info = info;
+  isSystemInfoSet = true;
+  console.log('System info set:', system_info);
+  const hash = Identifiers.fromRaw(system_info).hash().toString();
+  mainWindow?.webContents.send('device-set', hash);
 };
 
 const submitSession = async (proof: string) => {
